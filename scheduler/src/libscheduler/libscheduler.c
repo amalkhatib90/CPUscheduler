@@ -45,17 +45,15 @@ int comparer(const void* a, const void* b)
 	int priority_difference = job_a->priority - job_b ->priority;
 	int arrival_difference = job_a->arrival_time - job_b->arrival_time;
 	int run_differnce = job_a ->process_time - job_b->process_time;
-	//int remaining_difference = job_a ->remaining_time - job_b->remaining_time;
+	int remaining_difference = job_a ->last_checked - job_b->last_checked;
 
 	//fcfs compare
-	if(s == FCFS || s == RR)
+	if(s == FCFS)
 	{
-    return 1;
-		//return arrival_difference;
+		return arrival_difference;
 	}
-
-	//pri compare
-	if(s == PRI || s == PPRI)
+	//ppri compare
+	if(s == PPRI)
 	{
 		if(priority_difference == 0)
 		{
@@ -64,16 +62,40 @@ int comparer(const void* a, const void* b)
     else
 		  return priority_difference;
 	}
-	//sjf compare
-	if(s == SJF || s == PSJF)
+	//pri compare
+	if(s == PRI)
 	{
-    return run_differnce;
-		/*if(run_differnce == 0)
+		if(priority_difference == 0)
 		{
 			return arrival_difference;
 		}
     else
-		  return run_differnce;*/
+		  return priority_difference;
+	}
+	//psjf compare
+	if(s == PSJF)
+	{
+		if(remaining_difference == 0)
+		{
+			return arrival_difference;
+		}
+    else
+		  return remaining_difference;
+	}
+	//RR, nothing to compare
+	if(s == RR)
+	{
+		return 0;
+	}
+	//sjf compare
+	if(s == SJF)
+	{
+		if(run_differnce == 0)
+		{
+			return arrival_difference;
+		}
+    else
+		  return run_differnce;
 	}
 	//default
   else
@@ -156,15 +178,12 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
     }
     return this_core;
   }
+  if (this_core >= num_cores){
+    if (s == PPRI || s == PSJF){
 
-  else if (s == PSJF){
-    int i =0;
-    while (i < num_cores) {
-
-      i++;
     }
   }
-  return 0;
+
 }
 
 
@@ -204,7 +223,7 @@ int scheduler_job_finished(int core_id, int job_number, int time)
       cores_arr[core_id]->response_time = time - cores_arr[core_id]->arrival_time;
     }
     return curr_job->id;
-  }
+    }
   return -1;
 }
 
