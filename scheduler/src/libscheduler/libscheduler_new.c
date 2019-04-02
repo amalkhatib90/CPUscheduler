@@ -16,10 +16,9 @@
 
 priqueue_t* q;
 int num_cores;
-int num_remaining_cores;
 float waiting_time;
 float turnaround_time;
-float response_time;
+float response_time; //
 int num_jobs;
 int curr_time;
 scheme_t s;
@@ -27,14 +26,6 @@ scheme_t s;
 //array of cores
 job_t* cores_arr;
 
-// find an empty core and ready to use one.
-int idle_core(){
-  for (int i = 0; i < num_cores; i++){
-    if(cores_arr == NULL)
-      return i;
-  }
-  return -1;
-}
 
 int comparer(const void* a, const void* b)
 {
@@ -44,18 +35,16 @@ int comparer(const void* a, const void* b)
 	//compare differences
 	int priority_difference = job_a->priority - job_b ->priority;
 	int arrival_difference = job_a->arrival_time - job_b->arrival_time;
-	int run_differnce = job_a ->process_time - job_b->process_time;
-	//int remaining_difference = job_a ->remaining_time - job_b->remaining_time;
+	int run_differnce = job_a ->running_time - job_b->running_time;
+	int remaining_difference = job_a ->remaining_time - job_b->remaining_time;
 
 	//fcfs compare
-	if(s == FCFS || s == RR)
+	if(s == FCFS)
 	{
-    return 1;
-		//return arrival_difference;
+		return arrival_difference;
 	}
-
-	//pri compare
-	if(s == PRI || s == PPRI)
+	//ppri compare
+	if(s == PPRI)
 	{
 		if(priority_difference == 0)
 		{
@@ -64,16 +53,40 @@ int comparer(const void* a, const void* b)
     else
 		  return priority_difference;
 	}
-	//sjf compare
-	if(s == SJF || s == PSJF)
+	//pri compare
+	if(s == PRI)
 	{
-    return run_differnce;
-		/*if(run_differnce == 0)
+		if(priority_difference == 0)
 		{
 			return arrival_difference;
 		}
     else
-		  return run_differnce;*/
+		  return priority_difference;
+	}
+	//psjf compare
+	if(s == PSJF)
+	{
+		if(remaining_difference == 0)
+		{
+			return arrival_difference;
+		}
+    else
+		  return remaining_difference;
+	}
+	//RR, nothing to compare
+	if(s == RR)
+	{
+		return 0;
+	}
+	//sjf compare
+	if(s == SJF)
+	{
+		if(run_differnce == 0)
+		{
+			return arrival_difference;
+		}
+    else
+		  return run_differnce;
 	}
 	//default
   else
@@ -101,7 +114,7 @@ void scheduler_start_up(int cores, scheme_t scheme)
 	curr_time = 0;
 	s = scheme;
   //cores array
-  cores_arr = /*(job_t*)*/malloc(sizeof(job_t) * num_cores);
+  cores_arr = (job_t*)malloc(sizeof(job_t) * num_cores);
 	for(int i = 0; i < num_cores; i++)
 	{
 		cores_arr[i] = NULL;
@@ -132,38 +145,25 @@ void scheduler_start_up(int cores, scheme_t scheme)
   @return -1 if no scheduling changes should be made.
 
  */
-
-
 int scheduler_new_job(int job_number, int time, int running_time, int priority)
 {
-  /*for(int i = 0; i < num_jobs; i++){
+  for(int i = 0; i < num_jobs; i++){
     job_t n_job = cores_arr[i];
     //if remaining_time means the response time??
     if (n_job != NULL && n_job->arrival_time != curr_time){
       n_job->remaining_time = n_job->running_time - (curr_time - n_job->start_time);
     }
-  }*/
+  }
 
-  int this_core = idle_core();
+  int core_num = 0;
   job_t n_job = new_job(job_number, time, running_time, priority);
 
-  if (this_core != -1){
-    cores_arr[this_core] = n_job;
-    cores_arr[this_core]->response_time = time - cores_arr[this_core]->arrival_time;
-
-    if (s == PSJF){
-      n_job->last_checked = time;
-    }
-    return this_core;
+  // give cores numbers
+  while(cores_arr[core_num] != NULL){
+    core_num++;
   }
 
-  else if (s == PSJF){
-    int i =0;
-    while (i < num_cores) {
-
-      i++;
-    }
-  }
+//  if (core_num >= num_jobs)
   return 0;
 }
 
@@ -183,29 +183,8 @@ int scheduler_new_job(int job_number, int time, int running_time, int priority)
  */
 int scheduler_job_finished(int core_id, int job_number, int time)
 {
-  job_t this_job = cores_arr[core_id];
-  response_time += this_job->response_time;
-  turnaround_time += time - this_job->arrival_time;
-  waiting_time += time - this_job->arrival_time - this_job->original_process_time;
 
-  num_jobs++;
-
-  free(cores_arr[core_id]);
-  cores_arr[core_id] = NULL;
-
-  if(priqueue_size(q) > 0){
-    job_t curr_job = (job_t)priqueue_poll(q);
-    if(s == PSJF){
-      curr_job->last_checked = time;
-    }
-
-    cores_arr[core_id] = curr_job;
-    if (cores_arr[core_id]->response_time < 0){
-      cores_arr[core_id]->response_time = time - cores_arr[core_id]->arrival_time;
-    }
-    return curr_job->id;
-  }
-  return -1;
+	return -1;
 }
 
 
@@ -234,8 +213,8 @@ int scheduler_quantum_expired(int core_id, int time)
   }
   // if running time means the process time for the job.
   cores_arr[core_id] = priqueue_poll(q);
-  if(cores_arr[core_id]->response_time == -1){
-    cores_arr[core_id]-> response_time = time - cores_arr[core_id]->arrival_time;
+  if(cores_arr[core_id]->running_time == -1){
+    cores_arr[core_id]-> running_time = time - cores_arr[core_id]->arrival_time;
   }
 	return cores_arr[core_id]->id;
 }

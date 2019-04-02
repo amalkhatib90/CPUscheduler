@@ -1,8 +1,6 @@
 /** @file libscheduler.h
  */
 
-#include <stdbool.h>
-
 #ifndef LIBSCHEDULER_H_
 #define LIBSCHEDULER_H_
 
@@ -12,10 +10,10 @@ typedef struct _job_t
 	int id;
 	int priority;
 	int arrival_time;
-	int start_time; //time starts for one of them(start -arr)
-	int running_time; // how much time run already curr - start
-	int remaining_time; // how much time left
-	int end_time; // the time it finished
+	int original_process_time; //time starts for one of them(start -arr)
+	int process_time; // how much time run already curr - start
+	int response_time; // how much time left
+	int last_checked; // the time it finished
 } *job_t;
 
 static job_t new_job(int job_id, int arr_time, int run_time, int priority){
@@ -24,19 +22,13 @@ static job_t new_job(int job_id, int arr_time, int run_time, int priority){
   new_job->id = job_id;
   new_job->priority = priority;
   new_job->arrival_time = arr_time;
-  new_job->start_time = 0;
-  new_job->running_time = run_time;
-  new_job->remaining_time = run_time;
-  new_job->end_time = 0;
+  new_job->response_time = -1;
+  new_job->original_process_time = run_time;
+  new_job->process_time = run_time;
+  new_job->last_checked = 0;
 
   return new_job;
 }
-
-typedef struct core_t
-{
-	bool iAmFree;
-	job_t job;
-} core_t;
 
 /**
   Constants which represent the different scheduling algorithms
@@ -51,7 +43,6 @@ float scheduler_average_turnaround_time();
 float scheduler_average_waiting_time   ();
 float scheduler_average_response_time  ();
 void  scheduler_clean_up               ();
-
 void  scheduler_show_queue             ();
 
 #endif /* LIBSCHEDULER_H_ */
